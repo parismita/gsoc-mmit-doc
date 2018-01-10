@@ -1,3 +1,4 @@
+theme: jekyll-theme-slate
 name: "Max Margin Interval Trees"
 output_dir: "."
 navbar:
