@@ -1,0 +1,7 @@
+name: "Max Margin Interval Trees"
+output_dir: "."
+navbar:
+  title: "Max Margin Interval Trees"
+  left:
+    - text: "Easy Test"
+      href: easy.html
