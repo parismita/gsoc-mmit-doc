@@ -6,4 +6,4 @@ navbar:
    - text: "Overview"
      href: index.html
    - text: "Easy Test"
-     href: easy.html
+     href: http://parismita.github.io/gsoc-mmit-doc/easy
