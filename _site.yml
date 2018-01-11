@@ -1,4 +1,4 @@
-name: "Max Margin Interval Trees"
+name: "Max Margin"
 output_dir: "."
 navbar:
   title: "Test solutions"
@@ -6,4 +6,4 @@ navbar:
    - text: "Overview"
      href: index.html
    - text: "Easy Test"
-     href: http://parismita.github.io/gsoc-mmit-doc/easy
+     href: easy.html
