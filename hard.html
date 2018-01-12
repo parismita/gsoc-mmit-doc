@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Parismita Das" />
+
+<meta name="date" content="2018-01-11" />
+
+<title>Interval censored Regression Tree using Survreg</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Test solutions</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Overview</a>
+</li>
+<li>
+  <a href="easy.html">Easy</a>
+</li>
+<li>
+  <a href="medium.html">Medium</a>
+</li>
+<li>
+  <a href="hard.html">Hard</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Interval censored Regression Tree using Survreg</h1>
+<h3 class="subtitle"><em>Hard</em></h3>
+<h4 class="author"><em>Parismita Das</em></h4>
+<h4 class="date"><em>11 January 2018</em></h4>
+
+</div>
+
+
+<pre><code>## Loading required package: grid</code></pre>
+<pre><code>## Loading required package: libcoin</code></pre>
+<pre><code>## Loading required package: mvtnorm</code></pre>
+<pre class="r"><code>#########################################split index#########################################################
+get_split &lt;- function(y, dataset,i,min_size){
+  split&lt;-NULL
+  split$log&lt;- Inf
+  split$group$right&lt;-NULL
+  split$group$left&lt;-NULL
+  split$index &lt;- 0
+  split$row &lt;-0
+  split$br &lt;- 0
+  
+  for (index in 1:(length(dataset[0,]))){ #4
+    if(i!=index){
+    form &lt;-as.formula(paste(y, paste(names(dataset[index]), collapse=&quot;+&quot;),collapse = &quot;+&quot;))
+    for (row in 1:length(dataset[,index])){ #150
+      br&lt;-dataset[row,index]
+      group &lt;- test_split(dataset, index, br)
+      ctrl&lt;-survreg.control(maxiter=30, rel.tolerance=1e-06,toler.chol=1e-7)
+      if((length(group$left)&gt;min_size)&amp;&amp;(length(group$right)&gt;min_size))
+      {
+      fitl &lt;- survreg(form, dataset[group$left,] ,dist = &quot;t&quot;,control = ctrl)
+      l&lt;-logLik(fitl)
+      fitr &lt;- survreg(form, dataset[group$right,] ,dist = &quot;t&quot;,control = ctrl)
+      r&lt;-logLik(fitr)
+      log&lt;- l+r
+      #print(c(l,r,log))
+
+      if(is.nan(l)){
+        log&lt;-r
+      }
+      if(is.nan(r)){
+        log&lt;-l
+      }
+      if(is.nan(log)){
+        log&lt;- split$log
+      }
+      if(log==0){
+        #print(c(dataset[row,index],row,index,names(dataset[index])))
+        log&lt;--Inf
+      }
+      #print(log)
+       if (split$log &lt; as.numeric(log)){
+        split$index &lt;- index
+        split$row &lt;-row
+        split$br &lt;- br
+        split$log &lt;- log
+        split$group&lt;-group
+        
+       }
+      }
+     }
+    }
+   }
+  print(split$log)
+  print(split$row)
+  print(split$index)
+  print(&quot;end&quot;)
+  return(split)
+}</code></pre>
+<pre class="r"><code>#######################################right-left split###################################################
+test_split &lt;- function(dataset, index, value){
+  left &lt;- c()
+  right &lt;- c()
+  for (row in 1:length(dataset[,2])){
+    if (as.numeric(dataset[row,index]) &lt; value){
+      left &lt;- cbind(left,row)
+    }
+    else{
+      right &lt;- cbind(right,row)
+    }
+  }
+  group &lt;-c()
+  group$left &lt;- left
+  group$right &lt;- right
+ 
+  return (group)
+}</code></pre>
+<pre class="r"><code>#####################################3tree############################################################3
+# Create child splits for a node or make terminal
+split &lt;- function(y,sp, depth, maxdepth,min_size,i,dataset,b_index){
+  View(b_index)
+  rsize&lt;- length(sp$group$right)
+  lsize&lt;- length(sp$group$left)
+  #b_index
+  l&lt;- length(b_index[,1])
+  id &lt;- as.numeric(b_index[l,1])+1
+  term &lt;- 0
+  varid&lt;-0
+  kidi&lt;-0
+  kidf&lt;-0
+  br&lt;-0
+  info &lt;- &#39;&#39;
+  tag&lt;-&#39;no&#39;
+  
+  # check for a no split
+  if (!((any(sp$group$left))&amp;&amp;(any(sp$group$right)))){
+    return(b_index)
+  }
+  
+  if (length(dataset[,2])&lt;=min_size){
+    term&lt;-1
+    tag&lt;-b_index[id-1,8]
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+    return(b_index)
+  }
+  
+  #gini for right
+  tag&lt;-&#39;right&#39;
+  print(&quot;right&quot;)
+  sp&lt;- get_split(y,dataset[sp$group$right,],i,min_size)
+  rsize&lt;- length(sp$group$right)
+  lsize&lt;- length(sp$group$left)
+  if((sp$log==-Inf)||(sp$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(rsize)&lt;as.numeric(min_size))){
+    term &lt;- 1
+    sp$group$right &lt;- NULL
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+  }
+  else{
+    varid &lt;- sp$index
+    node &lt;- c(id,varid,sp$br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+    print(sp$group$right)
+    print(length(dataset[,2]))
+    print(length(dataset[,sp$group$right]))
+    b_index &lt;- split(y,sp,depth+1,maxdepth,min_size,i,dataset[sp$group$right,],b_index)
+  }
+  
+  #b_index
+  tag&lt;-&#39;left&#39;
+  print(&quot;left&quot;)
+  l&lt;- length(b_index[,1])
+  id &lt;- as.numeric(b_index[l,1])+1
+  term &lt;- 0
+  varid&lt;-0
+  br&lt;-0
+  info &lt;- &#39;&#39;
+  
+  #gini for left
+  sp &lt;- get_split(y,dataset[sp$group$left,],i,min_size)
+  rsize&lt;- length(sp$group$right)
+  lsize&lt;- length(sp$group$left)
+  if((sp$log==-Inf)||(sp$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(lsize)&lt;as.numeric(min_size))){
+    term &lt;- 1
+    sp$group$left &lt;- FALSE
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+  }
+  else{
+    varid &lt;- sp$index
+    br&lt;- sp$br
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+    gr &lt;- sp$group
+    b_index &lt;- split(y,gr,depth+1,maxdepth,min_size,i,dataset[gr$left,],b_index)
+  }
+  
+  return(b_index)
+}</code></pre>
+<pre class="r"><code>#########################################terminal output#############################################
+kid &lt;- function(b_index){
+  n&lt;- 0
+  k&lt;-c()
+  
+  for(i in 2:(length(b_index[,1])-1)){
+    if(b_index[i,8]==&quot;right&quot;){
+      b_index[i-1,6] = i
+      if(b_index[i+1,8]==&quot;left&quot;){
+        b_index[i-1,5] = i+1      
+      }
+    }
+    if((b_index[i,8]==&quot;left&quot;)&amp;&amp;(b_index[i-2,5]==0)){
+      k&lt;-c(k,i)
+    }
+  }
+  c&lt;-1
+  for(i in length(b_index[,1]):1){
+    if((b_index[i,5]==0)&amp;&amp;(b_index[i,4]==0)){
+      b_index[i,5]=k[c]
+      c=c+1
+    }
+  }
+  return (b_index)
+}</code></pre>
+<pre class="r"><code>#############################################cart algo################################################
+cart &lt;- function(y,dataset,i,maxdepth,min_size){
+  b_index &lt;- c(1)
+  b &lt;- get_split(y,dataset,i,min_size)
+  b_index &lt;- data.frame(b_index,b$index,b$br,0,0,0,&#39;&#39;,&quot;root&quot;,stringsAsFactors=FALSE)
+  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,&quot;terminal&quot;,&quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  b_index &lt;- split(y,b,1,maxdepth,min_size,i,dataset,b_index)
+  b_index &lt;- kid(b_index)
+  print(b_index)
+  
+  nodelist &lt;- list(
+    #root node
+    list(id = 1L, split = partysplit(varid = as.integer(b_index[1,2]), breaks = as.numeric(b_index[1,3])), 
+         kids = c(as.integer(b_index[1,5]),as.integer(b_index[1,6]))))
+  
+  for(i in 2:length(b_index[,1])){
+    if(as.numeric(b_index[i,4])){
+      nodelist[i] &lt;- list(list(id = as.integer(b_index[i,1]), info = b_index[i,7]))
+    }
+    else{
+      nodelist[i] &lt;- list(
+        list(id = as.integer(b_index[i,1]), split = partysplit(varid = as.integer(b_index[i,2]), 
+                                                               breaks = as.numeric(b_index[i,3])), 
+             kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),info = b_index[i,7]))
+    }
+  }
+  ## convert to a recursive structure
+  node &lt;- as.partynode(nodelist)
+  
+  ## set up party object
+  n&lt;- c(names(dataset[i]),&quot;.&quot;)
+  form &lt;-as.formula(paste(y, paste(n, collapse=&quot;+&quot;),collapse = &quot;+&quot;))
+  dataset &lt;- model.frame(form, data = dataset)
+  tree &lt;- party(node, data = dataset, fitted = data.frame(&quot;(fitted)&quot; = fitted_node(node, data = dataset),
+                                                          &quot;(response)&quot; = model.response(dataset),
+                                                          check.names = FALSE), terms = terms(dataset))
+  tree &lt;- as.constparty(tree)
+  
+  return(tree)
+}</code></pre>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

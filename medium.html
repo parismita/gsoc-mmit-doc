@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Parismita Das" />
+
+<meta name="date" content="2018-01-11" />
+
+<title>Create Desicion Tree learner using CART</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Test solutions</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Overview</a>
+</li>
+<li>
+  <a href="easy.html">Easy</a>
+</li>
+<li>
+  <a href="medium.html">Medium</a>
+</li>
+<li>
+  <a href="hard.html">Hard</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Create Desicion Tree learner using CART</h1>
+<h3 class="subtitle"><em>Medium</em></h3>
+<h4 class="author"><em>Parismita Das</em></h4>
+<h4 class="date"><em>11 January 2018</em></h4>
+
+</div>
+
+
+<p>To implement a simple version of Breiman’s CART algorithm using partykit. Currently the algorithm can split only on basis of numerical features and can make only classification trees. The implementation is tested on the rpart example dataset Kyphosis, thereby comparing rpart model to the new implemented one.</p>
+<pre><code>## Loading required package: grid</code></pre>
+<pre><code>## Loading required package: libcoin</code></pre>
+<pre><code>## Loading required package: mvtnorm</code></pre>
+<div id="gini-index" class="section level1">
+<h1>Gini Index</h1>
+<p>The Gini index is the name of the cost function used to evaluate splits in the dataset.The following function calculates the gini-index which is required of finding the best split.</p>
+<pre class="r"><code>gini_process&lt;-function(classes,splitvar = NULL){
+  if (is.null(splitvar)){
+    #if there is no vaiable arguement on which splitting is to be done then 
+    #gini index is the 1 - sum of square of probablity of being in ith class.
+    base_prob &lt;-table(classes)/length(classes)
+    return(1-sum(base_prob**2))
+  }
+  
+  #splitting variable is a logical variable true if x&gt;splitting point else false.
+  #if present then calculate probablity of each classes to be true or false.
+  #done in crossprob
+  base_prob &lt;-table(splitvar)/length(splitvar)
+  crosstab &lt;- table(classes,splitvar)
+  crossprob &lt;- prop.table(crosstab,2)
+  Gini &lt;- c()
+  for(i in 1:length(crossprob[1,])){
+    Node_Gini &lt;- 1-sum(crossprob[,i]**2)
+    Gini &lt;- c(Gini,Node_Gini)
+  }
+  #gini index is base probablity*crossprobablity
+  return(sum(base_prob * Gini))
+}</code></pre>
+</div>
+<div id="get-best-split" class="section level1">
+<h1>Get Best Split</h1>
+<p>With given dataset anf the target variable, every feature is split at integral points and grouped into TRUE and FALSE where x&gt;split value is stated as TRUE. The Gini index is then calculated using function gini_process. The maximum gini index is the best splitting point. The output is split point’s (row,index).</p>
+<pre class="r"><code>get_split &lt;- function(dataset,target,i){
+  b &lt;- c(0,0)
+  b_score &lt;- 2
+  for (index in 1:(length(dataset[0,]))){ 
+    #if index is that of target then move to next index
+    if(names(dataset[index])!=names(dataset[i])){
+      #check if minimum and maximum exists or if the feature is of class type.
+      if((max(dataset[,index])==Inf)||(min(dataset[,index])==-Inf)||(is.factor(dataset[names(dataset[index])]))){
+        if(is.factor(dataset[names(dataset[index])])){
+          #class type feature&#39;s gini index
+          spv &lt;- t(dataset[names(dataset[index])])
+        }
+        else{
+          #taking datapoints as splitting point.
+          for (row in 1:length(dataset[index,])){ 
+            br&lt;-dataset[row,index]
+            spv &lt;- t(dataset[names(dataset[index])] &lt; as.numeric(br))[1,]
+            if(any(spv)){
+              gini &lt;- gini_process(target, spv)
+              
+              if (gini &lt; b_score){
+                b &lt;- c(index,br)
+                b_score &lt;- gini
+              }
+            }
+          }
+        }
+      }
+      #If max and min of feature exists. 
+      #Let k be integral value from min to max, 
+      #gini index is calculated for each splitting point 
+      #and maximum is noted as best splitting point. 
+      else{
+        for (k in min(dataset[,index]):max(dataset[,index])){ #150
+          spv &lt;- t(dataset[names(dataset[index])] &lt; as.numeric(k))[1,]
+          if(any(spv)){
+            gini &lt;- gini_process(target, spv)
+            
+            if (gini &lt; b_score){
+              b &lt;- c(index,k)
+              b_score &lt;- gini
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if(b_score==0){ return(c(0,0))}
+  return(b)
+}</code></pre>
+</div>
+<div id="split-into-two" class="section level1">
+<h1>Split into two</h1>
+<p>The dataset is split into left and right according to splitting value input.</p>
+<pre class="r"><code>test_split &lt;- function(dataset, index, value){
+  left &lt;- c()
+  right &lt;- c()
+  for (row in 1:length(dataset[,1])){
+    if (as.numeric(dataset[row,index]) &lt; value){
+      left &lt;- cbind(left,row)
+    }
+    else{
+      right &lt;- cbind(right,row)
+    }
+  }
+  group &lt;-c()
+  group$left &lt;- left
+  group$right &lt;- right
+  return (group)
+}</code></pre>
+</div>
+<div id="make-tree" class="section level1">
+<h1>Make Tree</h1>
+<p>Using depth first search method, making a binary tree with cost function as maximum gini index. Here I am storing the tree sequence into a variabe b_index which is later used to create the tree using partykit. The tree has a defined maximum depth and minimum horizontal size.</p>
+<pre class="r"><code>split &lt;- function(group, depth, maxdepth,min_size,target,i,dataset,b_index){
+  rsize&lt;- length(group$left)
+  lsize&lt;- length(group$right)
+  l&lt;- length(b_index[,1])
+  id &lt;- as.numeric(b_index[l,1])+1
+  term &lt;- 0
+  varid&lt;-0
+  kidi&lt;-0
+  kidf&lt;-0
+  br&lt;-0
+  info &lt;- &#39;&#39;
+  tag&lt;-&#39;no&#39;
+  
+  # check for a no split
+  if (!((any(group$left))&amp;&amp;(any(group$right)))){
+    return(b_index)
+  }
+  
+  #gini for right
+  tag&lt;-&#39;right&#39;
+  #getting best split for right part of dataset
+  b &lt;- get_split(dataset[group$right,],target[group$right],i)
+  #if b value is 0, it means its a terminal. 
+  #There is no further splitting
+  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(rsize)&lt;as.numeric(min_size))){
+    term &lt;- 1
+    info &lt;- to_terminal(group$right,target)
+    group$right &lt;- NULL
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+  }
+  #If there is further splitting
+  else{
+    varid &lt;- b[1]
+    br&lt;- b[2]
+    info &lt;- to_terminal(group$right,target)
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+    gr &lt;- test_split(dataset[group$right,], b[1], b[2])
+    b_index &lt;- split(gr,depth+1,maxdepth,min_size,target[group$right],i,dataset[group$right,],b_index)
+  }
+  
+  #b_index
+  tag&lt;-&#39;left&#39;
+  l&lt;- length(b_index[,1])
+  id &lt;- as.numeric(b_index[l,1])+1
+  term &lt;- 0
+  varid&lt;-0
+  br&lt;-0
+  info &lt;- &#39;&#39;
+  
+  #gini for left
+  b &lt;- get_split(dataset[group$left,],target[group$left],i)
+  #if no further splitting for left side
+  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(lsize)&lt;as.numeric(min_size))){
+    term &lt;- 1
+    info &lt;- to_terminal(group$left,target)
+    group$left &lt;- FALSE
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+  }
+  #for further splitting
+  else{
+    varid &lt;- b[1]
+    br&lt;- b[2]
+    info &lt;- to_terminal(group$left,target)
+    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
+    b_index &lt;- rbind(b_index,node)
+    gr &lt;- test_split(dataset[group$left,], b[1], br)
+    b_index &lt;- split(gr,depth+1,maxdepth,min_size,target[group$left],i,dataset[group$left,],b_index)
+  }
+  
+  return(b_index)
+}</code></pre>
+</div>
+<div id="b_index" class="section level1">
+<h1>b_index</h1>
+<p>Its a table that defines the tree structure. The columns are: “id”, “varid”, “break”, “terminal”, “kidi”, “kidf”, “info”, “tag” respectively. These according to partysplit objects arguements needed. Tag defines whether it went to right or left while splitting.</p>
+</div>
+<div id="partykit-kids-define" class="section level1">
+<h1>Partykit kids define</h1>
+<p>The kids index required for partysplit are defined here, for every b_index. The logic used is that the i-1th index has kid(right) value as ith one’s id if it has right tag. If the sequence of tag is right then left then i-1th index has kif(left) as id of that “left”. Then fill the remaining ones from last to first.</p>
+<pre class="r"><code>kid &lt;- function(b_index){
+  n&lt;- 0
+  k&lt;-c()
+  
+  for(i in 2:(length(b_index[,1])-1)){
+    if(b_index[i,8]==&quot;right&quot;){
+      b_index[i-1,6] = i
+      if(b_index[i+1,8]==&quot;left&quot;){
+        b_index[i-1,5] = i+1      
+        }
+    }
+    if((b_index[i,8]==&quot;left&quot;)&amp;&amp;(b_index[i-2,5]==0)){
+      k&lt;-c(k,i)
+    }
+  }
+  c&lt;-1
+  for(i in length(b_index[,1]):1){
+    if((b_index[i,5]==0)&amp;&amp;(b_index[i,4]==0)){
+      b_index[i,5]=k[c]
+      c=c+1
+    }
+  }
+  return (b_index)
+}</code></pre>
+</div>
+<div id="partysplit-and-partynodes" class="section level1">
+<h1>Partysplit and Partynodes</h1>
+<p>The CART algo is implemented here. The nodelist is list of partysplit objects that is then used to create partynode to create the tree structure.</p>
+<pre class="r"><code>cart &lt;- function(dataset,target,i,maxdepth,min_size){
+  b_index &lt;- c(1)
+  b &lt;- get_split(dataset,target,i)
+  b_index &lt;- data.frame(b_index,b[1],b[2],0,0,0,&#39;&#39;,&quot;root&quot;,stringsAsFactors=FALSE)
+  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,&quot;terminal&quot;,&quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  group &lt;- test_split(dataset, b[1], b[2])
+  b_index &lt;- split(group,1,maxdepth,min_size,target,i,dataset,b_index)
+  b_index &lt;- kid(b_index)
+  print(b_index)
+  
+  nodelist &lt;- list(
+    #root node
+    list(id = 1L, split = partysplit(varid = as.integer(b_index[1,2]), breaks = as.numeric(b_index[1,3])), 
+         kids = c(as.integer(b_index[1,5]),as.integer(b_index[1,6]))))
+  
+  for(i in 2:length(b_index[,1])){
+    if(as.numeric(b_index[i,4])){
+      nodelist[i] &lt;- list(list(id = as.integer(b_index[i,1]), info = b_index[i,7]))
+    }
+    else{
+      nodelist[i] &lt;- list(
+        list(id = as.integer(b_index[i,1]), split = partysplit(varid = as.integer(b_index[i,2]), 
+                                                               breaks = as.numeric(b_index[i,3])), 
+             kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),info = b_index[i,7]))
+    }
+  }
+  ## convert to a recursive structure
+  node &lt;- as.partynode(nodelist)
+  
+  ## set up party object
+  dataset &lt;- model.frame(Kyphosis ~ ., data = kyphosis)
+  tree &lt;- party(node, data = dataset, fitted = data.frame(&quot;(fitted)&quot; = fitted_node(node, data = dataset),
+                                                          &quot;(response)&quot; = model.response(dataset),
+                                                          check.names = FALSE), terms = terms(dataset))
+  tree &lt;- as.constparty(tree)
+  return(tree)
+}</code></pre>
+<div id="the-b_index-table" class="section level2">
+<h2>The b_index table:</h2>
+<p>The data used is kyphosis of rpart package. Hereby plotting the tree generated by CART algo vs the rpart tree.</p>
+</div>
+<div id="the-new-generated-tree." class="section level2">
+<h2>The new generated Tree.</h2>
+<pre><code>##    id varid break terminal kidi kidf    info   tag
+## 1   1     4     9        0    9    2          root
+## 2   2     4    15        0    4    3  absent right
+## 3   3     0     0        1    0    0  absent right
+## 4   4     2    52        0    8    5  absent  left
+## 5   5     2    97        0    7    6  absent right
+## 6   6     0     0        1    0    0  absent right
+## 7   7     0     0        1    0    0 present  left
+## 8   8     0     0        1    0    0  absent  left
+## 9   9     2     9        0   11   10 present  left
+## 10 10     0     0        1    0    0 present right
+## 11 11     0     0        1    0    0  absent  left</code></pre>
+<p><img src="medium_files/figure-html/m8-1.png" width="672" /></p>
+</div>
+<div id="the-rparts-desicion-tree" class="section level2">
+<h2>The rpart’s Desicion Tree</h2>
+<p><img src="medium_files/figure-html/m9-1.png" width="672" /></p>
+<p>We can see that the splitting points are almost at same feature and point. The difference which is occuring is because rpart uses rescaled gini methods (which behaves like hybrid of gini and information gain methods) for cost function and we are using only gini index as cost function.</p>
+</div>
+<div id="reference" class="section level2">
+<h2>Reference</h2>
+<p><a href="https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf" class="uri">https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf</a> <a href="https://cran.r-project.org/web/packages/partykit/partykit.pdf" class="uri">https://cran.r-project.org/web/packages/partykit/partykit.pdf</a></p>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

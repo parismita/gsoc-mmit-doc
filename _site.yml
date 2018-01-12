@@ -1,9 +1,13 @@
-name: "Max Margin"
+name: "Max Margin Interval Trees"
 output_dir: "."
 navbar:
   title: "Test solutions"
   left:
    - text: "Overview"
      href: index.html
-   - text: "Easy Test"
+   - text: "Easy"
      href: easy.html
+   - text: "Medium"
+     href: medium.html
+   - text: "Hard"
+     href: hard.html
