@@ -342,38 +342,41 @@ div.tocify {
 <p>With given dataset anf the target variable, every feature is split at integral points and grouped into TRUE and FALSE where x&gt;split value is stated as TRUE. The Gini index is then calculated using function gini_process. The maximum gini index is the best splitting point. The output is split point’s (row,index).</p>
 <pre class="r"><code>get_split &lt;- function(dataset,target,i){
   b &lt;- c(0,0)
-  b_score &lt;- 2
-  for (index in 1:(length(dataset[0,]))){ 
+  b_score &lt;- Inf
+  for (index in 1:(length(dataset[0,]))){
     #if index is that of target then move to next index
     if(names(dataset[index])!=names(dataset[i])){
       #check if minimum and maximum exists or if the feature is of class type.
-      if((max(dataset[,index])==Inf)||(min(dataset[,index])==-Inf)||(is.factor(dataset[names(dataset[index])]))){
-        if(is.factor(dataset[names(dataset[index])])){
-          #class type feature&#39;s gini index
-          spv &lt;- t(dataset[names(dataset[index])])
-        }
-        else{
-          #taking datapoints as splitting point.
-          for (row in 1:length(dataset[index,])){ 
-            br&lt;-dataset[row,index]
-            spv &lt;- t(dataset[names(dataset[index])] &lt; as.numeric(br))[1,]
-            if(any(spv)){
-              gini &lt;- gini_process(target, spv)
-              
-              if (gini &lt; b_score){
-                b &lt;- c(index,br)
-                b_score &lt;- gini
-              }
+      if((max(dataset[,index])==Inf)||(min(dataset[,index])==-Inf)||
+         (is.factor(dataset[names(dataset[index])]))){
+        for (row in 1:length(dataset[,1])){ #150
+          if(is.factor(dataset[names(dataset[index])])){
+            #class type feature&#39;s gini index
+            spv &lt;- t(dataset[names(dataset[index])])
+          }
+          else{
+            spv &lt;- t(dataset[names(dataset[index])] &lt; 
+                       as.numeric(dataset[row,index]))[1,]
+          }
+          
+          if(any(spv)){
+            gini &lt;- gini_process(target, spv)
+            
+            if (gini &lt; b_score){
+              b &lt;- c(index,row)
+              b_score &lt;- gini
             }
           }
         }
+        b&lt;-c(b[1],dataset[b[2],b[1]])
       }
       #If max and min of feature exists. 
       #Let k be integral value from min to max, 
       #gini index is calculated for each splitting point 
       #and maximum is noted as best splitting point. 
       else{
-        for (k in min(dataset[,index]):max(dataset[,index])){ #150
+        kk&lt;- seq(min(dataset[,index]),max(dataset[,index]),0.2)
+        for (k in kk){ 
           spv &lt;- t(dataset[names(dataset[index])] &lt; as.numeric(k))[1,]
           if(any(spv)){
             gini &lt;- gini_process(target, spv)
@@ -387,7 +390,7 @@ div.tocify {
       }
     }
   }
-  
+
   if(b_score==0){ return(c(0,0))}
   return(b)
 }</code></pre>
@@ -418,6 +421,7 @@ div.tocify {
 <pre class="r"><code>split &lt;- function(group, depth, maxdepth,min_size,target,i,dataset,b_index){
   rsize&lt;- length(group$left)
   lsize&lt;- length(group$right)
+  #b_index
   l&lt;- length(b_index[,1])
   id &lt;- as.numeric(b_index[l,1])+1
   term &lt;- 0
@@ -439,7 +443,8 @@ div.tocify {
   b &lt;- get_split(dataset[group$right,],target[group$right],i)
   #if b value is 0, it means its a terminal. 
   #There is no further splitting
-  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(rsize)&lt;as.numeric(min_size))){
+  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||
+     (as.numeric(rsize)&lt;as.numeric(min_size))){
     term &lt;- 1
     info &lt;- to_terminal(group$right,target)
     group$right &lt;- NULL
@@ -454,7 +459,8 @@ div.tocify {
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
     gr &lt;- test_split(dataset[group$right,], b[1], b[2])
-    b_index &lt;- split(gr,depth+1,maxdepth,min_size,target[group$right],i,dataset[group$right,],b_index)
+    b_index &lt;- split(gr,depth+1,maxdepth,min_size,
+                     target[group$right],i,dataset[group$right,],b_index)
   }
   
   #b_index
@@ -469,14 +475,15 @@ div.tocify {
   #gini for left
   b &lt;- get_split(dataset[group$left,],target[group$left],i)
   #if no further splitting for left side
-  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(lsize)&lt;as.numeric(min_size))){
+  if((b[1]==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||
+     (as.numeric(lsize)&lt;as.numeric(min_size))){
     term &lt;- 1
     info &lt;- to_terminal(group$left,target)
     group$left &lt;- FALSE
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
   }
-  #for further splitting
+   #for further splitting
   else{
     varid &lt;- b[1]
     br&lt;- b[2]
@@ -484,7 +491,8 @@ div.tocify {
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
     gr &lt;- test_split(dataset[group$left,], b[1], br)
-    b_index &lt;- split(gr,depth+1,maxdepth,min_size,target[group$left],i,dataset[group$left,],b_index)
+    b_index &lt;- split(gr,depth+1,maxdepth,min_size,
+                     target[group$left],i,dataset[group$left,],b_index)
   }
   
   return(b_index)
@@ -501,7 +509,7 @@ div.tocify {
   n&lt;- 0
   k&lt;-c()
   
-  for(i in 2:(length(b_index[,1])-1)){
+  for(i in 2:(length(b_index[,1]))){
     if(b_index[i,8]==&quot;right&quot;){
       b_index[i-1,6] = i
       if(b_index[i+1,8]==&quot;left&quot;){
@@ -527,57 +535,77 @@ div.tocify {
 <p>The CART algo is implemented here. The nodelist is list of partysplit objects that is then used to create partynode to create the tree structure.</p>
 <pre class="r"><code>cart &lt;- function(dataset,target,i,maxdepth,min_size){
   b_index &lt;- c(1)
+  n&lt;- c(names(dataset[i]),&quot;.&quot;)
+  form &lt;-as.formula(paste(n, collapse=&quot;~&quot;))
+  dataset &lt;- model.frame(form, data = dataset)
+  #target is changed from ith column to 1st column
+  i&lt;-1
+  
+  #get split for the root
   b &lt;- get_split(dataset,target,i)
-  b_index &lt;- data.frame(b_index,b[1],b[2],0,0,0,&#39;&#39;,&quot;root&quot;,stringsAsFactors=FALSE)
-  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,&quot;terminal&quot;,&quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  #store the result in b_index
+  b_index &lt;- data.frame(b_index,b[1],b[2],0,0,0,&#39;&#39;,
+                        &quot;root&quot;,stringsAsFactors=FALSE)
+  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,
+                        &quot;terminal&quot;,&quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  #split into left-right
   group &lt;- test_split(dataset, b[1], b[2])
+  
+  #split into further groups
   b_index &lt;- split(group,1,maxdepth,min_size,target,i,dataset,b_index)
+  #define the kids
   b_index &lt;- kid(b_index)
   print(b_index)
-  
+
+  #create a list of partysplit objects to be used to create tree structure by partynode.
   nodelist &lt;- list(
     #root node
-    list(id = 1L, split = partysplit(varid = as.integer(b_index[1,2]), breaks = as.numeric(b_index[1,3])), 
-         kids = c(as.integer(b_index[1,5]),as.integer(b_index[1,6]))))
+    list(id = 1L, split = partysplit(varid = as.integer(
+      b_index[1,2]), breaks = as.numeric(b_index[1,3])), 
+      kids = c(as.integer(b_index[1,5]),as.integer(b_index[1,6]))))
   
   for(i in 2:length(b_index[,1])){
+    #if terminal
     if(as.numeric(b_index[i,4])){
       nodelist[i] &lt;- list(list(id = as.integer(b_index[i,1]), info = b_index[i,7]))
     }
+    #if mid-tree structure
     else{
       nodelist[i] &lt;- list(
-        list(id = as.integer(b_index[i,1]), split = partysplit(varid = as.integer(b_index[i,2]), 
-                                                               breaks = as.numeric(b_index[i,3])), 
-             kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),info = b_index[i,7]))
+        list(id = as.integer(b_index[i,1]), split = partysplit(
+        varid = as.integer(b_index[i,2]), 
+        breaks = as.numeric(b_index[i,3])), 
+        kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),info = b_index[i,7]))
     }
   }
   ## convert to a recursive structure
   node &lt;- as.partynode(nodelist)
   
   ## set up party object
-  dataset &lt;- model.frame(Kyphosis ~ ., data = kyphosis)
-  tree &lt;- party(node, data = dataset, fitted = data.frame(&quot;(fitted)&quot; = fitted_node(node, data = dataset),
-                                                          &quot;(response)&quot; = model.response(dataset),
-                                                          check.names = FALSE), terms = terms(dataset))
+  tree &lt;- party(node, data = dataset, fitted = data.frame(
+    &quot;(fitted)&quot; = fitted_node(node, data = dataset),
+    &quot;(response)&quot; = model.response(dataset),
+    check.names = FALSE), terms = terms(dataset))
   tree &lt;- as.constparty(tree)
   return(tree)
 }</code></pre>
-<div id="the-b_index-table" class="section level2">
-<h2>The b_index table:</h2>
 <p>The data used is kyphosis of rpart package. Hereby plotting the tree generated by CART algo vs the rpart tree.</p>
 </div>
-<div id="the-new-generated-tree." class="section level2">
-<h2>The new generated Tree.</h2>
+<div id="kyphosis" class="section level1">
+<h1>Kyphosis</h1>
+<p>The dataset Kyphosis</p>
+<div id="the-b_index-table-and-the-new-generated-tree." class="section level2">
+<h2>The b_index table and The new generated Tree.</h2>
 <pre><code>##    id varid break terminal kidi kidf    info   tag
-## 1   1     4     9        0    9    2          root
-## 2   2     4    15        0    4    3  absent right
+## 1   1     4   8.2        0    9    2          root
+## 2   2     4  14.2        0    4    3  absent right
 ## 3   3     0     0        1    0    0  absent right
-## 4   4     2    52        0    8    5  absent  left
-## 5   5     2    97        0    7    6  absent right
+## 4   4     2  51.2        0    8    5  absent  left
+## 5   5     2  96.2        0    7    6  absent right
 ## 6   6     0     0        1    0    0  absent right
 ## 7   7     0     0        1    0    0 present  left
 ## 8   8     0     0        1    0    0  absent  left
-## 9   9     2     9        0   11   10 present  left
+## 9   9     2   8.2        0   11   10 present  left
 ## 10 10     0     0        1    0    0 present right
 ## 11 11     0     0        1    0    0  absent  left</code></pre>
 <p><img src="medium_files/figure-html/m8-1.png" width="672" /></p>
@@ -585,12 +613,36 @@ div.tocify {
 <div id="the-rparts-desicion-tree" class="section level2">
 <h2>The rpart’s Desicion Tree</h2>
 <p><img src="medium_files/figure-html/m9-1.png" width="672" /></p>
+</div>
+</div>
+<div id="iris" class="section level1">
+<h1>Iris</h1>
+<p>The dataset Iris</p>
+<div id="the-b_index-table-and-the-new-generated-tree.-1" class="section level2">
+<h2>The b_index table and The new generated Tree.</h2>
+<pre><code>##    id varid break terminal kidi kidf       info   tag
+## 1   1     4     2        0   11    2             root
+## 2   2     5   1.8        0   10    3 versicolor right
+## 3   3     4     5        0    5    4  virginica right
+## 4   4     0     0        1    0    0  virginica right
+## 5   5     0     0        1    0    0  virginica  left
+## 6   6     4     5        0    6    7 versicolor  left
+## 7   7     5   1.6        0    9    8  virginica right
+## 8   8     0     0        1    0    0 versicolor right
+## 9   9     0     0        1    0    0  virginica  left
+## 10 10     0     0        1    0    0 versicolor  left
+## 11 11     0     0        1    0    0     setosa  left</code></pre>
+<p><img src="medium_files/figure-html/m10-1.png" width="672" /></p>
+</div>
+<div id="the-rparts-desicion-tree-1" class="section level2">
+<h2>The rpart’s Desicion Tree</h2>
+<p><img src="medium_files/figure-html/m11-1.png" width="672" /></p>
 <p>We can see that the splitting points are almost at same feature and point. The difference which is occuring is because rpart uses rescaled gini methods (which behaves like hybrid of gini and information gain methods) for cost function and we are using only gini index as cost function.</p>
 </div>
-<div id="reference" class="section level2">
-<h2>Reference</h2>
-<p><a href="https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf" class="uri">https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf</a> <a href="https://cran.r-project.org/web/packages/partykit/partykit.pdf" class="uri">https://cran.r-project.org/web/packages/partykit/partykit.pdf</a></p>
 </div>
+<div id="reference" class="section level1">
+<h1>Reference</h1>
+<p><a href="https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf" class="uri">https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf</a> <a href="https://cran.r-project.org/web/packages/partykit/partykit.pdf" class="uri">https://cran.r-project.org/web/packages/partykit/partykit.pdf</a></p>
 </div>
 
 
