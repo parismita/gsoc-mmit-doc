@@ -336,7 +336,7 @@ div.tocify {
 </div>
 <div id="get-best-split" class="section level1">
 <h1>Get Best Split</h1>
-<p>With given dataset anf the target variable, every feature is split at integral points and grouped into TRUE and FALSE where x&gt;split value is stated as TRUE. The Gini index is then calculated using function gini_process. The maximum gini index is the best splitting point. The output is split point’s (row,index).</p>
+<p>With given dataset and the target variable, every feature is split at integral points and grouped into TRUE and FALSE where x&gt;split value is stated as TRUE. The Gini index is then calculated using function gini_process. The maximum gini index is the best splitting point. The output is split point’s (row,index).</p>
 <pre class="r"><code>get_split &lt;- function(dataset,target,i){
   b &lt;- c(0,0)
   b_score &lt;- Inf
