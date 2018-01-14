@@ -364,15 +364,15 @@ tree &lt;- rpart(formula = form, data = train, na.action = na.rpart, control = c
 ## 
 ##          CP nsplit rel error  xerror     xstd
 ## 1  0.329759      0   1.00000 1.00000 0.041108
-## 2  0.160858      1   0.67024 0.69705 0.037245
-## 3  0.034853      2   0.50938 0.59517 0.035278
-## 4  0.029491      3   0.47453 0.55496 0.034389
-## 5  0.018767      4   0.44504 0.55228 0.034327
-## 6  0.017426      5   0.42627 0.52279 0.033626
-## 7  0.016086      7   0.39142 0.53619 0.033950
-## 8  0.012511      9   0.35925 0.55228 0.034327
-## 9  0.010724     12   0.32172 0.57373 0.034813
-## 10 0.010000     15   0.28954 0.57373 0.034813</code></pre>
+## 2  0.160858      1   0.67024 0.70777 0.037431
+## 3  0.034853      2   0.50938 0.60590 0.035504
+## 4  0.029491      3   0.47453 0.55228 0.034327
+## 5  0.018767      4   0.44504 0.54155 0.034077
+## 6  0.017426      5   0.42627 0.52815 0.033756
+## 7  0.016086      7   0.39142 0.53887 0.034013
+## 8  0.012511      9   0.35925 0.53619 0.033950
+## 9  0.010724     12   0.32172 0.55228 0.034327
+## 10 0.010000     15   0.28954 0.55764 0.034450</code></pre>
 <p>Pruning the tree using cross validation to prevent overfitting, Thus inappropriate nodes are removed</p>
 <pre class="r"><code>pdtree&lt;- prune(tree, cp=tree$cptable[which.min(tree$cptable[,&quot;xerror&quot;]),&quot;CP&quot;])</code></pre>
 <p><img src="easy_files/figure-html/plot2-1.png" width="672" /></p>
@@ -392,11 +392,11 @@ tree &lt;- rpart(formula = form, data = train, na.action = na.rpart, control = c
 ## 
 ##         CP nsplit rel error  xerror     xstd
 ## 1 0.329759      0   1.00000 1.00000 0.041108
-## 2 0.160858      1   0.67024 0.69705 0.037245
-## 3 0.034853      2   0.50938 0.59517 0.035278
-## 4 0.029491      3   0.47453 0.55496 0.034389
-## 5 0.018767      4   0.44504 0.55228 0.034327
-## 6 0.017426      5   0.42627 0.52279 0.033626</code></pre>
+## 2 0.160858      1   0.67024 0.70777 0.037431
+## 3 0.034853      2   0.50938 0.60590 0.035504
+## 4 0.029491      3   0.47453 0.55228 0.034327
+## 5 0.018767      4   0.44504 0.54155 0.034077
+## 6 0.017426      5   0.42627 0.52815 0.033756</code></pre>
 <pre><code>## Warning in rsq.rpart(pdtree): may not be applicable for this method</code></pre>
 <p><img src="easy_files/figure-html/pred5-1.png" width="672" /></p>
 <p>Predicting the target class and calculating the missclassification error for pruned tree:</p>
@@ -496,6 +496,10 @@ is.error &lt;- is.lo | is.hi
 mn&lt;- mean(is.error)</code></pre>
 <p>The error is :</p>
 <pre><code>## [1] 0.2358104</code></pre>
+</div>
+<div id="reference" class="section level1">
+<h1>Reference</h1>
+<p><a href="https://cran.r-project.org/web/packages/rpart/rpart.pdf" class="uri">https://cran.r-project.org/web/packages/rpart/rpart.pdf</a><br> <a href="https://cran.r-project.org/web/packages/partykit/partykit.pdf" class="uri">https://cran.r-project.org/web/packages/partykit/partykit.pdf</a><br> <a href="https://cran.r-project.org/web/packages/trtf/trtf.pdf" class="uri">https://cran.r-project.org/web/packages/trtf/trtf.pdf</a></p>
 </div>
 
 
