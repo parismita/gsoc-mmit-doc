@@ -310,7 +310,6 @@ div.tocify {
 <p>To run train and test a decision tree model using rpart and partykit. And Using 5-fold cross-validation to compare the learned decision tree models to a trivial baseline learner.</p>
 <div id="using-rpart" class="section level2">
 <h2>Using rpart</h2>
-<p>Importing libraries</p>
 <p>The dataset using is segmentationData of caret package. The following code seperates test and train data and removes “Case” column from dataset.</p>
 <pre class="r"><code>data(&quot;segmentationData&quot;, package = &quot;caret&quot;)
 segmentationData$Cell&lt;-NULL
@@ -426,19 +425,7 @@ legend(0.15, 0.7, pch = 1:2, legend = levels(test$Class), bty = &quot;n&quot;)</
 </div>
 <div id="trtf" class="section level2">
 <h2>Trtf</h2>
-<pre><code>## 
-## Attaching package: &#39;variables&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
-## 
-##     unit</code></pre>
-<pre><code>## The following object is masked from &#39;package:grid&#39;:
-## 
-##     unit</code></pre>
-<pre><code>## 
-## Attaching package: &#39;survival&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:caret&#39;:
-## 
-##     cluster</code></pre>
+
 <p>Using interval censored data neuroblastomaProcessed of penaltyLearning package. The interval is consisted in target.mat and feature.mat consist of the features to be trained on.</p>
 <pre class="r"><code>data(neuroblastomaProcessed, package=&quot;penaltyLearning&quot;)</code></pre>
 <p>Considering the datapoints where interval is finite(there is no [-Inf, Inf] intervaled data).</p>
