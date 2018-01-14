@@ -307,13 +307,19 @@ div.tocify {
 </div>
 
 
+<p>To implement a (slow) regression tree for interval censored output data, using the survival::survreg function, which can be used to fit a linear model for censored outputs. Then search for the best possible split over all features by maximizing the logLik of the survreg model.</p>
 <pre><code>## Loading required package: grid</code></pre>
 <pre><code>## Loading required package: libcoin</code></pre>
 <pre><code>## Loading required package: mvtnorm</code></pre>
-<pre class="r"><code>#########################################split index#########################################################
+<div id="get-best-split" class="section level1">
+<h1>Get Best Split</h1>
+<p>Function get_split splits and checks for the best split by maximizing the loglik of survreg model. We surf through all possible splits by using 2 nested loops on rows and columns. Split and every point and check if that is the maximum or not.</p>
+<p>As this process takes a lot of time, as it has a Time complexity of O(2^n) Hence its known as Slow Regression.</p>
+<pre class="r"><code>##########################split index##############################################
 get_split &lt;- function(y, dataset,i,min_size){
+  #split object gives info about the best split
   split&lt;-NULL
-  split$log&lt;- Inf
+  split$log&lt;- -Inf
   split$group$right&lt;-NULL
   split$group$left&lt;-NULL
   split$index &lt;- 0
@@ -322,53 +328,51 @@ get_split &lt;- function(y, dataset,i,min_size){
   
   for (index in 1:(length(dataset[0,]))){ #4
     if(i!=index){
-    form &lt;-as.formula(paste(y, paste(names(dataset[index]), collapse=&quot;+&quot;),collapse = &quot;+&quot;))
-    for (row in 1:length(dataset[,index])){ #150
-      br&lt;-dataset[row,index]
-      group &lt;- test_split(dataset, index, br)
-      ctrl&lt;-survreg.control(maxiter=30, rel.tolerance=1e-06,toler.chol=1e-7)
-      if((length(group$left)&gt;min_size)&amp;&amp;(length(group$right)&gt;min_size))
-      {
-      fitl &lt;- survreg(form, dataset[group$left,] ,dist = &quot;t&quot;,control = ctrl)
-      l&lt;-logLik(fitl)
-      fitr &lt;- survreg(form, dataset[group$right,] ,dist = &quot;t&quot;,control = ctrl)
-      r&lt;-logLik(fitr)
-      log&lt;- l+r
-      #print(c(l,r,log))
-
-      if(is.nan(l)){
-        log&lt;-r
+      
+      #the formula used in survreg for fitting
+      form &lt;-as.formula(paste(y, 
+                              paste(names(dataset[index]), 
+                                    collapse=&quot;+&quot;),collapse = &quot;+&quot;))
+      
+      for (row in 1:length(dataset[,index])){ #150
+        br&lt;-dataset[row,index]
+        group &lt;- test_split(dataset, index, br)
+        ctrl&lt;-survreg.control(maxiter=60, rel.tolerance=1e-06,toler.chol=1e-7)
+        if((length(group$left)&gt;min_size)&amp;&amp;(length(group$right)&gt;min_size))
+        {
+          #fitting left and right part of split and summing their loglikelihood
+          fitl &lt;- survreg(form, dataset[group$left,] ,dist = &quot;t&quot;,control = ctrl)
+          l&lt;-logLik(fitl)
+          fitr &lt;- survreg(form, dataset[group$right,] ,dist = &quot;t&quot;,control = ctrl)
+          r&lt;-logLik(fitr)
+          log&lt;- l+r
+          
+          #checking condition if loglikelihood is Inf or Nan or 0 
+          #then it should be excluded.
+          if(is.nan(log)||is.nan(r)||is.nan(l)||(log==0)){
+            log&lt;--Inf
+          }
+          
+          #maximizing the loglikelihood
+          if (split$log &lt; as.numeric(log)){
+            split$index &lt;- index
+            split$row &lt;-row
+            split$br &lt;- br
+            split$log &lt;- log
+            split$group&lt;-group
+            
+          }
+        }
       }
-      if(is.nan(r)){
-        log&lt;-l
-      }
-      if(is.nan(log)){
-        log&lt;- split$log
-      }
-      if(log==0){
-        #print(c(dataset[row,index],row,index,names(dataset[index])))
-        log&lt;--Inf
-      }
-      #print(log)
-       if (split$log &lt; as.numeric(log)){
-        split$index &lt;- index
-        split$row &lt;-row
-        split$br &lt;- br
-        split$log &lt;- log
-        split$group&lt;-group
-        
-       }
-      }
-     }
     }
-   }
-  print(split$log)
-  print(split$row)
-  print(split$index)
-  print(&quot;end&quot;)
+  }
   return(split)
 }</code></pre>
-<pre class="r"><code>#######################################right-left split###################################################
+</div>
+<div id="split-the-dataset" class="section level1">
+<h1>Split The Dataset</h1>
+<p>This function splits the dataset into 2 parts : left and right by checking if value is lesser or higher. For lesser value than break point, the datapoint goes to left side and vise-versa.</p>
+<pre class="r"><code>####################right-left split#################################
 test_split &lt;- function(dataset, index, value){
   left &lt;- c()
   right &lt;- c()
@@ -386,10 +390,14 @@ test_split &lt;- function(dataset, index, value){
  
   return (group)
 }</code></pre>
-<pre class="r"><code>#####################################3tree############################################################3
+</div>
+<div id="structure-the-tree" class="section level1">
+<h1>Structure The Tree</h1>
+<p>The split function splits the dataset according to the best split point we get from get_split. We use depth first search to split the tree and make a binary tree out of it.</p>
+<p>Note: Here we consider only numerical columns for splitting.</p>
+<pre class="r"><code>############################3tree######################################
 # Create child splits for a node or make terminal
 split &lt;- function(y,sp, depth, maxdepth,min_size,i,dataset,b_index){
-  View(b_index)
   rsize&lt;- length(sp$group$right)
   lsize&lt;- length(sp$group$left)
   #b_index
@@ -408,39 +416,32 @@ split &lt;- function(y,sp, depth, maxdepth,min_size,i,dataset,b_index){
     return(b_index)
   }
   
-  if (length(dataset[,2])&lt;=min_size){
-    term&lt;-1
-    tag&lt;-b_index[id-1,8]
-    node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
-    b_index &lt;- rbind(b_index,node)
-    return(b_index)
-  }
-  
-  #gini for right
+  #splitting into right
   tag&lt;-&#39;right&#39;
-  print(&quot;right&quot;)
-  sp&lt;- get_split(y,dataset[sp$group$right,],i,min_size)
-  rsize&lt;- length(sp$group$right)
-  lsize&lt;- length(sp$group$left)
-  if((sp$log==-Inf)||(sp$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(rsize)&lt;as.numeric(min_size))){
+  #print(&quot;right&quot;)
+  #new splitiing object
+  spn&lt;- get_split(y,dataset[sp$group$right,],i,min_size)
+  
+  #if its a terminal
+  if((spn$log==-Inf)||(spn$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))
+     ||(as.numeric(rsize)&lt;as.numeric(min_size))){
     term &lt;- 1
     sp$group$right &lt;- NULL
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
   }
+  #if we require further right splitting
   else{
-    varid &lt;- sp$index
-    node &lt;- c(id,varid,sp$br,term,kidi,kidf,info,tag)
+    varid &lt;- spn$index
+    node &lt;- c(id,varid,spn$br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
-    print(sp$group$right)
-    print(length(dataset[,2]))
-    print(length(dataset[,sp$group$right]))
-    b_index &lt;- split(y,sp,depth+1,maxdepth,min_size,i,dataset[sp$group$right,],b_index)
+    b_index &lt;- split(y,spn,depth+1,maxdepth,
+                     min_size,i,dataset[sp$group$right,],b_index)
   }
   
   #b_index
   tag&lt;-&#39;left&#39;
-  print(&quot;left&quot;)
+  #print(&quot;left&quot;)
   l&lt;- length(b_index[,1])
   id &lt;- as.numeric(b_index[l,1])+1
   term &lt;- 0
@@ -448,92 +449,149 @@ split &lt;- function(y,sp, depth, maxdepth,min_size,i,dataset,b_index){
   br&lt;-0
   info &lt;- &#39;&#39;
   
-  #gini for left
-  sp &lt;- get_split(y,dataset[sp$group$left,],i,min_size)
-  rsize&lt;- length(sp$group$right)
-  lsize&lt;- length(sp$group$left)
-  if((sp$log==-Inf)||(sp$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))||(as.numeric(lsize)&lt;as.numeric(min_size))){
+  #splitting into left
+  spn &lt;- get_split(y,dataset[sp$group$left,],i,min_size)
+  
+  #terminal
+  if((spn$log==-Inf)||(spn$log==0)||(as.numeric(depth)&gt;as.numeric(maxdepth))
+     ||(as.numeric(lsize)&lt;as.numeric(min_size))){
     term &lt;- 1
     sp$group$left &lt;- FALSE
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
   }
+  #splitting further
   else{
-    varid &lt;- sp$index
-    br&lt;- sp$br
+    varid &lt;- spn$index
+    br&lt;- spn$br
     node &lt;- c(id,varid,br,term,kidi,kidf,info,tag)
     b_index &lt;- rbind(b_index,node)
-    gr &lt;- sp$group
-    b_index &lt;- split(y,gr,depth+1,maxdepth,min_size,i,dataset[gr$left,],b_index)
+    gr &lt;- spn$group
+    b_index &lt;- split(y,gr,depth+1,maxdepth,min_size,i,
+                     dataset[sp$group$left,],b_index)
   }
   
   return(b_index)
 }</code></pre>
-<pre class="r"><code>#########################################terminal output#############################################
+</div>
+<div id="kids-index" class="section level1">
+<h1>Kids Index</h1>
+<p>We Use the same algo here as in Medium Test.</p>
+<pre class="r"><code>###############################terminal output############################
 kid &lt;- function(b_index){
   n&lt;- 0
   k&lt;-c()
   
-  for(i in 2:(length(b_index[,1])-1)){
+  for(i in 2:(length(b_index[,1]))){
+    #if tag is right and next tag is left -&gt; put into i-1th b_index
     if(b_index[i,8]==&quot;right&quot;){
       b_index[i-1,6] = i
       if(b_index[i+1,8]==&quot;left&quot;){
         b_index[i-1,5] = i+1      
       }
     }
+    #check of left out left tags
     if((b_index[i,8]==&quot;left&quot;)&amp;&amp;(b_index[i-2,5]==0)){
       k&lt;-c(k,i)
     }
   }
   c&lt;-1
+  #put k from botton to top
   for(i in length(b_index[,1]):1){
-    if((b_index[i,5]==0)&amp;&amp;(b_index[i,4]==0)){
+    if((b_index[i,5]==0)&amp;&amp;(b_index[i,4]==0)&amp;&amp;(b_index[i,6]!=0)){
       b_index[i,5]=k[c]
       c=c+1
     }
   }
+  
+  #If kidi and kidf are 0 and terminal is 0 then make it 1 
+  for(i in 2:length(b_index[,1])){
+    if((b_index[i,5]==0)&amp;&amp;(b_index[i,5]==0)){
+      b_index[i,4]=1
+    }
+  }
   return (b_index)
 }</code></pre>
-<pre class="r"><code>#############################################cart algo################################################
+</div>
+<div id="partysplit-and-partynode" class="section level1">
+<h1>Partysplit and Partynode</h1>
+<p>We are making list of partysplit objects and creating partynode which is used to create The Tree.</p>
+<pre class="r"><code>################################cart algo##################################
 cart &lt;- function(y,dataset,i,maxdepth,min_size){
   b_index &lt;- c(1)
+  
+  #defining formula and dataset
+  form &lt;-as.formula(paste(y, &quot;.&quot;))
+  dataset &lt;- model.frame(form, data = dataset)
+
+  #root splitting
   b &lt;- get_split(y,dataset,i,min_size)
-  b_index &lt;- data.frame(b_index,b$index,b$br,0,0,0,&#39;&#39;,&quot;root&quot;,stringsAsFactors=FALSE)
-  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,&quot;terminal&quot;,&quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  
+  #defininf b_index
+  b_index &lt;- data.frame(b_index,b$index,b$br,0,0,0,&#39;&#39;,
+                        &quot;root&quot;,stringsAsFactors=FALSE)
+  colnames(b_index) &lt;- c(&quot;id&quot;,&quot;varid&quot;,&quot;break&quot;,&quot;terminal&quot;,
+                         &quot;kidi&quot;,&quot;kidf&quot;,&quot;info&quot;,&quot;tag&quot;)
+  
+  #further splitting
   b_index &lt;- split(y,b,1,maxdepth,min_size,i,dataset,b_index)
   b_index &lt;- kid(b_index)
   print(b_index)
-  
+
+  #list of partysplit objects
   nodelist &lt;- list(
     #root node
-    list(id = 1L, split = partysplit(varid = as.integer(b_index[1,2]), breaks = as.numeric(b_index[1,3])), 
+    list(id = 1L, split = partysplit(varid = as.integer(b_index[1,2]), 
+                                     breaks = as.numeric(b_index[1,3])), 
          kids = c(as.integer(b_index[1,5]),as.integer(b_index[1,6]))))
   
   for(i in 2:length(b_index[,1])){
+    #terminal
     if(as.numeric(b_index[i,4])){
       nodelist[i] &lt;- list(list(id = as.integer(b_index[i,1]), info = b_index[i,7]))
     }
+    #mid-values
     else{
       nodelist[i] &lt;- list(
-        list(id = as.integer(b_index[i,1]), split = partysplit(varid = as.integer(b_index[i,2]), 
-                                                               breaks = as.numeric(b_index[i,3])), 
-             kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),info = b_index[i,7]))
+        list(id = as.integer(b_index[i,1]), split = partysplit(
+          varid = as.integer(b_index[i,2]), 
+          breaks = as.numeric(b_index[i,3])), 
+          kids = c(as.integer(b_index[i,5]),as.integer(b_index[i,6])),
+          info = b_index[i,7]))
     }
   }
   ## convert to a recursive structure
   node &lt;- as.partynode(nodelist)
   
   ## set up party object
-  n&lt;- c(names(dataset[i]),&quot;.&quot;)
-  form &lt;-as.formula(paste(y, paste(n, collapse=&quot;+&quot;),collapse = &quot;+&quot;))
-  dataset &lt;- model.frame(form, data = dataset)
-  tree &lt;- party(node, data = dataset, fitted = data.frame(&quot;(fitted)&quot; = fitted_node(node, data = dataset),
-                                                          &quot;(response)&quot; = model.response(dataset),
-                                                          check.names = FALSE), terms = terms(dataset))
+  tree &lt;- party(node, data = dataset, fitted = data.frame(
+    &quot;(fitted)&quot; = fitted_node(node, data = dataset),
+    &quot;(response)&quot; = model.response(dataset),
+    check.names = FALSE), terms = terms(dataset))
   tree &lt;- as.constparty(tree)
   
   return(tree)
 }</code></pre>
+</div>
+<div id="the-result" class="section level1">
+<h1>The Result</h1>
+<p>Here is the b_index value and the generated Tree. I am taking 45 datapoints of the neuroblastomaProcessed dataset and 118 features.</p>
+<pre><code>## [1] &quot;b_index:&quot;</code></pre>
+<pre><code>##    id varid              break terminal kidi kidf info   tag
+## 1   1     5  -2.66313655853642        0   11    2       root
+## 2   2    17   4.55598040940771        0   10    3      right
+## 3   3     5   -2.4492307074178        0    9    4      right
+## 4   4     6   2.85699394979789        0    8    5      right
+## 5   5    19   8.06714763207896        0    7    6      right
+## 6   6     0                  0        1    0    0      right
+## 7   7     0                  0        1    0    0       left
+## 8   8    32   4.83058229562863        1    0    0       left
+## 9   9     0                  0        1    0    0       left
+## 10 10     2 0.0615741153864324        1    0    0       left
+## 11 11     5   -2.9125749505963        1    0    0       left</code></pre>
+<pre><code>## [1] &quot;The tree:&quot;</code></pre>
+<p><img src="hard_files/figure-html/m8-1.png" width="672" /></p>
+</div>
 
 
 
