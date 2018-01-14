@@ -501,7 +501,7 @@ div.tocify {
 </div>
 <div id="partykit-kids-define" class="section level1">
 <h1>Partykit kids define</h1>
-<p>The kids index required for partysplit are defined here, for every b_index. The logic used is that the i-1th index has kid(right) value as ith one’s id if it has right tag. If the sequence of tag is right then left then i-1th index has kif(left) as id of that “left”. Then fill the remaining ones from last to first.</p>
+<p>The kids index required for partysplit are defined here, for every b_index. The logic used is that the (i-1)th index has kid(right) value as ith one’s id if it has right tag. If the sequence of tag is right then left then i-1th index has kid(left) as id of that “left”. Then fill the remaining ones from last to first.</p>
 <pre class="r"><code>kid &lt;- function(b_index){
   n&lt;- 0
   k&lt;-c()
