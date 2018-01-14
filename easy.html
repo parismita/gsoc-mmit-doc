@@ -317,7 +317,7 @@ train&lt;-subset(segmentationData,Case==&quot;Train&quot;)
 test&lt;-subset(segmentationData,Case==&quot;Test&quot;)
 train$Case&lt;-NULL
 test$Case&lt;-NULL</code></pre>
-<p>In the dataset, the target data to pe predicted is “Class” with two classes as “PS” and “WS”. The formula required for creating tree using rpart consist of all features expt y,time,status as given below</p>
+<p>In the dataset, the target data to be predicted is “Class” with two classes as “PS” and “WS”. The formula required for creating tree using rpart consist of all features except y,time,status as given below</p>
 <pre class="r"><code>form &lt;- Class ~ . - Class</code></pre>
 <div id="the-trivial-baseline" class="section level3">
 <h3>The trivial baseline</h3>
